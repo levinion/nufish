@@ -81,12 +81,19 @@ impl Network {
         train_data: (&Tensor, &Tensor),
         test_data: (&Tensor, &Tensor),
         epoch: usize,
+        batch_size: usize,
     ) -> anyhow::Result<()> {
         let (train_x, train_t) = train_data;
         let (test_x, test_t) = test_data;
+        let batch_number = train_x.nrows() / batch_size;
         for i in 1..=epoch {
-            self.gradient(train_x, train_t, true)?;
-            self.update()?;
+            for index in 0..batch_number {
+                let range: Vec<_> = (index * batch_size..(index + 1) * batch_size).collect();
+                let train_x = train_x.select(ndarray::Axis(0), &range);
+                let train_t = train_t.select(ndarray::Axis(0), &range);
+                self.gradient(&train_x, &train_t, true)?;
+                self.update()?;
+            }
             let train_loss = self.loss(train_x, train_t, true)?;
             let test_loss = self.loss(test_x, test_t, false)?;
             let train_accuracy = self.accuracy(train_x, train_t, true)?;

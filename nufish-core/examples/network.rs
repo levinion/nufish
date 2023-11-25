@@ -57,6 +57,6 @@ fn main() {
     let test_x = inputs.slice(s![120.., ..]).to_owned();
     let test_t = targets.slice(s![120.., ..]).to_owned();
 
-    net.train((&train_x, &train_t), (&test_x, &test_t), 100000)
+    net.train((&train_x, &train_t), (&test_x, &test_t), 100000, 5)
         .unwrap();
 }
