@@ -11,7 +11,7 @@ pub struct Relu {
 }
 
 impl Layer for Relu {
-    fn forward(&mut self, x: &Tensor) -> LayerResult {
+    fn forward(&mut self, x: &Tensor, _: bool) -> LayerResult {
         let output = x.mapv(common::relu);
         let mask = x.mapv(common::relu_mask);
         self.mask = Some(mask);
@@ -37,7 +37,7 @@ pub struct Sigmoid {
 }
 
 impl Layer for Sigmoid {
-    fn forward(&mut self, x: &Tensor) -> LayerResult {
+    fn forward(&mut self, x: &Tensor, _: bool) -> LayerResult {
         let output = x.mapv(common::sigmoid);
         self.output = Some(output.clone());
         Ok(output)

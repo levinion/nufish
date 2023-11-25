@@ -30,21 +30,21 @@ impl Network {
         self
     }
 
-    pub fn predict(&mut self, x: &Tensor) -> LayerResult {
+    fn predict(&mut self, x: &Tensor, if_train: bool) -> LayerResult {
         let mut x = x.clone();
         for layer in &mut self.layers {
-            x = layer.forward(&x)?;
+            x = layer.forward(&x, if_train)?;
         }
         Ok(x)
     }
 
-    pub fn loss(&mut self, x: &Tensor, t: &Tensor) -> anyhow::Result<f64> {
-        let y = self.predict(x)?;
+    fn loss(&mut self, x: &Tensor, t: &Tensor, if_train: bool) -> anyhow::Result<f64> {
+        let y = self.predict(x, if_train)?;
         self.last_layer.as_mut().unwrap().forward(&y, t)
     }
 
-    pub fn accuracy(&mut self, x: &Tensor, t: &Tensor) -> anyhow::Result<f64> {
-        let y = self.predict(x)?;
+    fn accuracy(&mut self, x: &Tensor, t: &Tensor, if_train: bool) -> anyhow::Result<f64> {
+        let y = self.predict(x, if_train)?;
         let y_index = argmax(&y, 1)?;
         let t_index = argmax(t, 1)?;
         let correct_num = {
@@ -58,9 +58,9 @@ impl Network {
         Ok(accuracy)
     }
 
-    pub fn gradient(&mut self, x: &Tensor, t: &Tensor) -> anyhow::Result<()> {
+    fn gradient(&mut self, x: &Tensor, t: &Tensor, if_train: bool) -> anyhow::Result<()> {
         // 前向推理
-        self.loss(x, t)?;
+        self.loss(x, t, if_train)?;
 
         // 误差反向传播
         let mut dout = self.last_layer.as_mut().unwrap().backward()?;
@@ -71,8 +71,28 @@ impl Network {
         Ok(())
     }
 
-    pub fn update(&mut self) -> anyhow::Result<()> {
+    fn update(&mut self) -> anyhow::Result<()> {
         self.layers.iter_mut().for_each(|layer| layer.update());
+        Ok(())
+    }
+
+    pub fn train(
+        &mut self,
+        train_data: (&Tensor, &Tensor),
+        test_data: (&Tensor, &Tensor),
+        epoch: usize,
+    ) -> anyhow::Result<()> {
+        let (train_x, train_t) = train_data;
+        let (test_x, test_t) = test_data;
+        for i in 1..=epoch {
+            self.gradient(train_x, train_t, true)?;
+            self.update()?;
+            let train_loss = self.loss(train_x, train_t, true)?;
+            let test_loss = self.loss(test_x, test_t, false)?;
+            let train_accuracy = self.accuracy(train_x, train_t, true)?;
+            let test_accuracy = self.accuracy(test_x, test_t, false)?;
+            println!("epoch {i}: \n\ttrain_loss: {train_loss}, \n\ttrain_acc: {train_accuracy}, \n\ttest_loss: {test_loss}, \n\ttest_acc: {test_accuracy}")
+        }
         Ok(())
     }
 }
