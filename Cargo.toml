@@ -1,0 +1,3 @@
+[workspace]
+members = ["nufish-core"]
+resolver = "2"
